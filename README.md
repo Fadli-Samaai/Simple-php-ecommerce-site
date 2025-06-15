@@ -1,0 +1,1 @@
+A basic PHP e-commerce site for gaming consoles, modernized with a responsive CSS layout and improved back-end logic.
