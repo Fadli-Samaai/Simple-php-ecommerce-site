@@ -1,5 +1,5 @@
 <?php
-require_once 'include/dbconn.php';
+require_once 'config/dbconn.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

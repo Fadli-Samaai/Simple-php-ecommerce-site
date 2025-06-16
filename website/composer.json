@@ -1,0 +1,15 @@
+{
+    "name": "fadli/phpe-commerce",
+    "description": "A PHP e-commerce website",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Fadli",
+            "email": "fadli.samaai@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+        "vlucas/phpdotenv": "^5.5"
+    }
+}

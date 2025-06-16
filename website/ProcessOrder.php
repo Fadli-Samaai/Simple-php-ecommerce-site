@@ -1,5 +1,5 @@
 <?php
-require_once 'include/dbconn.php';
+require_once 'config/dbconn.php';
 
 $sql = "SELECT product_id, product_name, unit_price, units_in_stock FROM products ORDER BY product_id";
 $products_result = $conn->query($sql);

@@ -1,5 +1,5 @@
 <?php
-require_once 'include/dbconn.php';
+require_once 'config/dbconn.php';
 
 $subtotal = 0;
 $vat_percentage = 0.15;

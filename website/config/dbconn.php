@@ -1,17 +1,14 @@
 <?php
-require_once 'vendor/autoload.php';
+try {
+    $hostname = getenv('DB_HOST'); 
+    $database = getenv('MYSQL_DATABASE'); 
+    $username = getenv('MYSQL_USER');
+    $password = getenv('MYSQL_PASSWORD');
 
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+    $conn = new mysqli($hostname, $username, $password, $database);
 
-$conn = new mysqli(
-    $_ENV['Host_Name'],     
-    $_ENV['User_Name'], 
-    $_ENV['Password'],
-    $_ENV['Database_Name']   
-);
-
-if($conn->connect_errno) {
-    echo "<strong>Failed to connect to MySQL:</strong> (" . $conn->connect_errno . ") " .
-            $conn->connect_error;
+    $conn->set_charset("utf8mb4");
+} catch (mysqli_sql_exception $e) {
+    error_log("Database Connection Error: " . $e->getMessage());
+    die("<h3>Database connection failed. Please contact support.</h3>");
 }
