@@ -12,8 +12,10 @@ if (isset($_POST['orderemail']) && !empty($_POST['orderemail']) && isset($_POST[
     $emailaddress = $_POST['orderemail'];
     $selected_product_ids = $_POST['products'];
 
-    $sql = "SELECT customer_id, customer_first_name, customer_last_name, customer_address FROM customer WHERE customer_email = '" . $conn->real_escape_string($emailaddress) . "'";
-    $result = $conn->query($sql);
+    $stmt = $conn->prepare("SELECT customer_id, customer_first_name, customer_last_name, customer_address FROM customer WHERE customer_email = ?");
+    $stmt->bind_param("s", $emailaddress);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
     if ($result && $result->num_rows > 0) {
         $customer_data = $result->fetch_assoc();
@@ -23,15 +25,21 @@ if (isset($_POST['orderemail']) && !empty($_POST['orderemail']) && isset($_POST[
 
         try {
             $date = date("Y-m-d");
-            $sql_order = "INSERT INTO orders (customer_id, order_date) VALUES ('$cid', '$date')";
-            if (!$conn->query($sql_order)) {
-                throw new Exception("Could not create order record.");
+            $stmt_order = $conn->prepare("INSERT INTO orders (customer_id, order_date) VALUES (?, ?)");
+            $stmt_order->bind_param("is", $cid, $date);
+
+            if (!$stmt_order->execute()) {
+                throw new Exception("Order insert failed: " . $stmt_order->error);
             }
+
             $order_id = $conn->insert_id;
 
             $product_ids_string = implode(',', array_map('intval', $selected_product_ids));
             $sql_products = "SELECT product_id, product_name, unit_price FROM products WHERE product_id IN ($product_ids_string)";
             $products_result = $conn->query($sql_products);
+
+            $stmt_detail = $conn->prepare("INSERT INTO orderdetails (order_id, product_id, unit_price) VALUES (?, ?, ?)");
+            $stmt_stock = $conn->prepare("UPDATE products SET units_in_stock = units_in_stock - 1 WHERE product_id = ?");
 
             while ($product = $products_result->fetch_assoc()) {
                 $product_id = $product['product_id'];
@@ -40,18 +48,21 @@ if (isset($_POST['orderemail']) && !empty($_POST['orderemail']) && isset($_POST[
                 $order_items[] = $product;
                 $subtotal += $unit_price;
 
-                $sql_details = "INSERT INTO orderdetails (order_id, product_id, unit_price) VALUES ('$order_id', '$product_id', '$unit_price')";
-                if (!$conn->query($sql_details)) {
-                    throw new Exception("Failed to save order detail for product ID $product_id.");
+                $stmt_detail->bind_param("iid", $order_id, $product_id, $unit_price);
+                if (!$stmt_detail->execute()) {
+                    throw new Exception("Insert into orderdetails failed for product $product_id: " . $stmt_detail->error);
                 }
 
-                $sql_update_stock = "UPDATE products SET units_in_stock = units_in_stock - 1 WHERE product_id = $product_id";
-                if (!$conn->query($sql_update_stock)) {
-                    throw new Exception("Failed to update stock for product ID $product_id.");
+                $stmt_stock->bind_param("i", $product_id);
+                if (!$stmt_stock->execute()) {
+                    throw new Exception("Stock update failed for product $product_id: " . $stmt_stock->error);
                 }
             }
-            $conn->commit();
 
+            $conn->commit();
+            $stmt_detail->close();
+            $stmt_stock->close();
+            $stmt_order->close();
         } catch (Exception $e) {
             $conn->rollback();
             $error_message = $e->getMessage();

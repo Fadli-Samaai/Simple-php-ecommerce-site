@@ -1,8 +1,9 @@
 <?php
 require_once 'config/dbconn.php';
 
-$sql = "SELECT product_id, product_name, unit_price, units_in_stock FROM products ORDER BY product_id";
-$products_result = $conn->query($sql);
+$stmt = $conn->prepare("SELECT product_id, product_name, unit_price, units_in_stock FROM products ORDER BY product_id");
+$stmt->execute();
+$products_result = $stmt->get_result();
 
 $image_map = [
     1 => 'xbox_series_s.jpg',
@@ -93,6 +94,7 @@ $image_map = [
         </div>
     </div>
     <?php
+    $stmt->close();
     $conn->close();
     ?>
 </body>

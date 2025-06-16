@@ -29,51 +29,61 @@ require_once 'config/dbconn.php';
 
             <main class="content-area">
                 <?php
+                $stmt = null;
                 $count = 0;
                 $is_submission_valid = false;
 
-                if (!empty($_GET)) {
-                    foreach ($_GET as $value) {
+                if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
+                    foreach ($_POST as $value) {
                         if (empty($value)) {
                             $count++;
                         }
                     }
 
-                    if ($count == 0) {
+                    if ($count === 0) {
                         $is_submission_valid = true;
                     }
-                }
-                
-                if (!$is_submission_valid && !empty($_GET)) {
-                    echo "<div class='status-message status-error'>";
-                    echo "<h3>Oops! There was a problem.</h3>";
-                    echo "<p>Please fill in all fields. You left out $count field(s).</p>";
-                    echo "<a href='RegisterUser.php' class='btn'>Return to Form</a>";
-                    echo "</div>";
 
-                } elseif ($is_submission_valid) {
-                    $fname = $_GET['firstname'];
-                    $lname = $_GET['lastname'];
-                    $email = $_GET['emailaddress'];
-                    $phone = $_GET['phone'];
-                    $idnum = $_GET['idnum'];
-                    $address = $_GET['address'];
-
-                    $sql = "INSERT INTO customer (customer_first_name, customer_last_name, customer_phone, customer_email, customer_address, customer_sa_id)
-                            VALUES ('$fname', '$lname', '$phone', '$email', '$address', '$idnum')";
-
-                    if ($conn->query($sql) === TRUE) {
-                        echo "<div class='status-message status-success'>";
-                        echo "<h3>Registration Successful!</h3>";
-                        echo "<p>Welcome, " . htmlspecialchars($fname) . " " . htmlspecialchars($lname) . ". You can now proceed to place an order.</p>";
-                        echo "<a href='ProcessOrder.php' class='btn'>Place an Order</a>";
-                        echo "</div>";
-                    } else {
+                    if (!$is_submission_valid) {
                         echo "<div class='status-message status-error'>";
-                        echo "<h3>Registration Failed</h3>";
-                        echo "<p>An error occurred while saving your information. Please try again.</p>";
+                        echo "<h3>Oops! There was a problem.</h3>";
+                        echo "<p>Please fill in all fields. You left out $count field(s).</p>";
                         echo "<a href='RegisterUser.php' class='btn'>Return to Form</a>";
                         echo "</div>";
+                    } else {
+                        $fname = $_POST['firstname'];
+                        $lname = $_POST['lastname'];
+                        $email = $_POST['emailaddress'];
+                        $phone = $_POST['phone'];
+                        $idnum = $_POST['idnum'];
+                        $address = $_POST['address'];
+
+                        $stmt = $conn->prepare("INSERT INTO customer 
+                            (customer_first_name, customer_last_name, customer_phone, customer_email, customer_address, customer_sa_id) 
+                            VALUES (?, ?, ?, ?, ?, ?)");
+
+                        if (!$stmt) {
+                            echo "<div class='status-message status-error'>";
+                            echo "<h3>Database Error</h3>";
+                            echo "<p>Prepare failed: " . htmlspecialchars($conn->error) . "</p>";
+                            echo "</div>";
+                        } else {
+                            $stmt->bind_param("ssssss", $fname, $lname, $phone, $email, $address, $idnum);
+
+                            if ($stmt->execute()) {
+                                echo "<div class='status-message status-success'>";
+                                echo "<h3>Registration Successful!</h3>";
+                                echo "<p>Welcome, " . htmlspecialchars($fname) . " " . htmlspecialchars($lname) . ". You can now proceed to place an order.</p>";
+                                echo "<a href='ProcessOrder.php' class='btn'>Place an Order</a>";
+                                echo "</div>";
+                            } else {
+                                echo "<div class='status-message status-error'>";
+                                echo "<h3>Registration Failed</h3>";
+                                echo "<p>Error: " . htmlspecialchars($stmt->error) . "</p>";
+                                echo "<a href='RegisterUser.php' class='btn'>Return to Form</a>";
+                                echo "</div>";
+                            }
+                        }
                     }
                 } else {
                     echo "<div class='form-container'>";
@@ -81,6 +91,10 @@ require_once 'config/dbconn.php';
                     echo "<p>Fill out the form on our registration page to create your account.</p>";
                     echo "<a href='RegisterUser.php' class='btn'>Go to Registration Form</a>";
                     echo "</div>";
+                }
+
+                if ($stmt) {
+                    $stmt->close();
                 }
 
                 $conn->close();
