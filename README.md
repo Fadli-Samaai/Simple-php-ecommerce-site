@@ -12,3 +12,5 @@ Step 2: Add a .env file containing the following =>
                                                     MYSQL_ROOT_PASSWORD="Your_Password_Here" // Can be anything
 
 Step 3:  Build and run network by running the following command from the location of the docker-compose.yml file => docker compose up --build 
+
+Step 4: Access at => http://localhost:8080
